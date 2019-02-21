@@ -89,21 +89,92 @@ class PolygonDrawer(object):
 
 # ============================================================================
 
-def get_image_size(image):
-    """Return Image size as tuple (height, width)"""
+class FeatureCreator(object):
+    """This class contain function to create feature image"""
 
-    # Get image height, width
-    height, width = image.shape[:2]
-    img_size = (height, width)
+    def __init__(self):
+            # Assign default feature size
+            self.raw_feature_image = np.zeros(canvas_size, np.uint8)
+            self.feature_image_size = (320,480)
+            # Init feature image
+            self.feature_image = np.zeros(canvas_size, np.uint8)
+            self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_img])
+            self.masked_feature_image = None
 
-    # Show feature image that you want to get size
-    print("feature image that you want to get size [Press any key to exit]: ", image)
-    cv.imshow("Input Image", image)
+    def __init__(self, feature_image):
+        """Expected feature image object from cv.imread(path directory)"""
+            # We need 2 important thing : 1.Feature image, 2.Feature image size
+            # Assign default feature size
+            self.raw_feature_image = feature_image
+            # Init feature image with gray scale
+            self.feature_image = cv.cvtColor(raw_feature_image, cv.COLOR_BGR2GRAY)
+            # Assign feature image size as tuple of height, width
+            self.feature_image_size = (feature_image.shape[:1], feature_image.shape[1:2])
+            self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_img])
+            self.masked_feature_image = None
 
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    def get_size_from_image(image):
+        """Return Image size as tuple (height, width)"""
+
+        # Get image height, width
+        height, width = image.shape[:2]
+        img_size = (height, width)
+
+        # Show feature image that you want to get size
+##        print("feature image that you want to get size [Press any key to exit]: ", image)
+##        cv.imshow("Input Image", image)
+##        cv.waitKey(0)
+##        cv.destroyAllWindows()
+
+        return img_size
+
+
+    def get_feature_image_size(self):
+        """Return feature image size as tuple (height, width)"""
+        return self.feature_image_size
+
+    def get_feature_image(self):
+        """Return feature image"""
+        return self.feature_image
+        
+    def set_raw_feature_image(self, raw_feature_image):
+        """Set feature image, Expect: raw image (color image)"""
+        self.raw_feature_image = raw_feature_image
     
-    return img_size
+    def set_feature_image(self, feature_image):
+        """Set feature image, Expect: raw image (color image), But gray is acceptable."""
+        self.feature_image = cv.cvtColor(feature_image, cv.COLOR_BGR2GRAY)
+
+    # ถ้า mask feature ใหม่เลยก็ใช้ set, get_masked_feature()
+    def set_mask_feature(self):
+        """Set mask feature image"""
+        self.masked_feature_image = self.polygon_drawer.run()
+
+    def get_masked_feature(self, masked_feature_image):
+        """Return masked feature image"""
+        return self.masked_feature_image
+
+    def set_bitwisedAnd_feature_image(self):
+        """Set bitwise AND to feature image"""
+        # Create bitwise AND then overwrite to feature image
+        # Expect to get piggy with black background
+        self.bitwisedAnd_feature_image = cv.bitwise_and(self.feature_img, self.bitwisedAnd_feature_image, self.bitwisedAnd_feature_image, mask=None)
+    
+    def get_bitwisedAnd_feature_image(self):
+        """Get bitwise AND to feature image, Expect to get piggy with black Background"""
+        return self.bitwisedAnd_feature_image
+
+    def write_bitwisedAnd_feature_image_with_timestamp():
+        """Write bitwisedAnd feature image with timestamp (integer) to external directory"""
+        # Create timestamp
+        timestamp = time.time()
+        # Write bitwisedAnd feature image with timestamp (integer)
+        cv.imwrite("./feature_index_database/masked_feature/feature_bitwise_%d.png" % timestamp, self.bitwisedAnd_feature_image)
+        cv.imshow("Bitwise", self.bitwisedAnd_feature_image)
+        # Press any key to continue...
+        print("Press any key to continue...")
+        cv.waitKey(1)
+        cv.destroyAllWindows()
 
 def testRun(feature_img):
 
@@ -284,50 +355,22 @@ def testRun(feature_img):
 
 #----------------------------------------------------------------------------------------------#
 if __name__ == "__main__":
-    ## MAIN STATE ##
+                                                        ## MAIN STATE ##
 
+    #-------------------------IN CASE WE WANT TO CREATE NEW FEATURE IMAGE WITH BLACK BACKGROUND IN IT-------------------------#
 
-def get_feature_image():
-    """TODO"""
+    #----------------------------------------SKIP IF ALREADY HAVE FEATURE IMAGE------------------------------------------------#
 
-def set_feature_image():
-    """TODO"""
+    # Step 1 : We need at least one image to initial feature
+    image = cv.imread('A:/PiggySample/feature_index_database/feature7.png')
 
-    # Assign feature image as a template in this project
-    # Query Image [assign default image template]
-    raw_feature_image = cv.imread('A:/PiggySample/feature_index_database/feature7.png')
-    # Convert query image to gray image
-    feature_image = cv.cvtColor(raw_feature_image, cv.COLOR_BGR2GRAY)
+    # Step 2 : Create feature creator instance to create feature from image
+    # AUTHOR NOTE : This script expect to get bitwised(AND) of a feature image with black background in it.
+    feature_creator = FeatureCreator(image)
 
-    # Might used in some case of homography [ ignore this time]
-##    raw_feature_image_copy = raw_feature_image
-##    feature_image_copy = cv.cvtColor(raw_feature_image_copy, cv.COLOR_BGR2GRAY)
-
-    # ถ้า mask feature ใหม่เลยก็ใช้ get_mask_feature()
-def get_mask_feature(query_feature_image):
-    """Return masked feature image"""
-    #
-    img_size = get_image_size(query_feature_image)
-    feature_img = query_feature_image
-    canvas_size = img_size
-    print(canvas_size, "Outside class")
-    pd = PolygonDrawer(["Polygon",canvas_size, feature_img])
 
     
-##
-##    #Feature หมู ขาวๆ
-##    mask_feature = pd.run()
-##
-##    feature_bitwise = mask_feature
-##
-##
-##    #Bitwise AND to get only piggy
-##    feature_bitwise = cv.bitwise_and(feature_img, feature_bitwise, feature_bitwise, mask=None)
-##    timestamp = time.time()
-##    cv.imwrite("./feature_index_database/masked_feature/feature_bitwise_%d.png" % timestamp, feature_bitwise)
-##    cv.imshow("Bitwise", feature_bitwise)
-##    cv.waitKey(1)
-##    cv.destroyAllWindows()
+
 ###########################################################################
 
     #feature_bitwise = cv.imread('A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_collapse_1.png')
