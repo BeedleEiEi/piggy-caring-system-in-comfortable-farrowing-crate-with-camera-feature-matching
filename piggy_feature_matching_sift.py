@@ -100,6 +100,8 @@ class FeatureCreator(object):
             self.feature_image = np.zeros(canvas_size, np.uint8)
             self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_img])
             self.masked_feature_image = None
+            self.bitwisedAnd_feature_image = None
+            self.write_feature_image_location = ""
 
     def __init__(self, feature_image):
         """Expected feature image object from cv.imread(path directory)"""
@@ -112,6 +114,8 @@ class FeatureCreator(object):
             self.feature_image_size = (feature_image.shape[:1], feature_image.shape[1:2])
             self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_img])
             self.masked_feature_image = None
+            self.bitwisedAnd_feature_image = None
+            self.write_feature_image_path = ""
 
     def get_size_from_image(image):
         """Return Image size as tuple (height, width)"""
@@ -148,6 +152,7 @@ class FeatureCreator(object):
     # ถ้า mask feature ใหม่เลยก็ใช้ set, get_masked_feature()
     def set_mask_feature(self):
         """Set mask feature image"""
+        # Set mask feature by drawing polygon on feature image [Use PolygonDrawer's instance]
         self.masked_feature_image = self.polygon_drawer.run()
 
     def get_masked_feature(self, masked_feature_image):
@@ -164,13 +169,21 @@ class FeatureCreator(object):
         """Get bitwise AND to feature image, Expect to get piggy with black Background"""
         return self.bitwisedAnd_feature_image
 
-    def write_bitwisedAnd_feature_image_with_timestamp():
+    def set_write_feature_image_path(self, path):
+        """Set feature image write output path"""
+        self.write_feature_image_path = path
+    
+    def get_write_feature_image_path(self):
+        """Return feature image write output path"""
+        return self.write_feature_image_path
+
+    def write_bitwisedAnd_feature_image_with_timestamp(self):
         """Write bitwisedAnd feature image with timestamp (integer) to external directory"""
         # Create timestamp
         timestamp = time.time()
         # Write bitwisedAnd feature image with timestamp (integer)
-        cv.imwrite("./feature_index_database/masked_feature/feature_bitwise_%d.png" % timestamp, self.bitwisedAnd_feature_image)
-        cv.imshow("Bitwise", self.bitwisedAnd_feature_image)
+        cv.imwrite("./%s/feature_bitwise_%d.png" % self.write_feature_image_path % timestamp, self.bitwisedAnd_feature_image)
+        cv.imshow("Bitwised feature image", self.bitwisedAnd_feature_image)
         # Press any key to continue...
         print("Press any key to continue...")
         cv.waitKey(1)
@@ -353,11 +366,11 @@ def testRun(feature_img):
     cap.release()
     cv.destroyAllWindows()
 
-#----------------------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------------------------------------------------------#
 if __name__ == "__main__":
                                                         ## MAIN STATE ##
 
-    #-------------------------IN CASE WE WANT TO CREATE NEW FEATURE IMAGE WITH BLACK BACKGROUND IN IT-------------------------#
+    #-------------------------IN CASE WE WANT TO CREATE NEW FEATURE IMAGE WITH BLACK BACKGROUND IN IT--------------------------#
 
     #----------------------------------------SKIP IF ALREADY HAVE FEATURE IMAGE------------------------------------------------#
 
@@ -368,11 +381,19 @@ if __name__ == "__main__":
     # AUTHOR NOTE : This script expect to get bitwised(AND) of a feature image with black background in it.
     feature_creator = FeatureCreator(image)
 
-
+    # Step 3 : Draw polygon to mask feature image
+    feature_creator.set_mask_feature()
     
+    # Step 4 : Create bitwised(AND) of feature image
+    feature_creator.set_bitwisedAnd_feature_image()
+    
+    # Step 5 : Set path to write bitwised image
+    feature_creator.set_write_feature_image_path("A:/PiggySample/feature_index_database/masked_feature")
 
-###########################################################################
-
+    # Step 6 : Save feature image with black background
+    feature_creator.write_bitwisedAnd_feature_image_with_timestamp()
+    
+#------------------------------------------------------------------------------------------------------------------------------#
     #feature_bitwise = cv.imread('A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_collapse_1.png')
     #testRun(feature_bitwise)
 
