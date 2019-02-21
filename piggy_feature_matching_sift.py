@@ -15,6 +15,7 @@ class PolygonDrawer(object):
     def __init__(self, canva):
         self.window_name = canva[0] # Window's name
         self.canvas_size = canva[1] # Canvas size [Feature image size]
+        print(self.canvas_size, "  Canvas size")
         self.feature_img = canva[2] # Feature image to be drawed
 
         self.done = False # Flag signalling we're done clicked
@@ -43,44 +44,44 @@ class PolygonDrawer(object):
 
     def run(self):
         # Let's create our working window and set a mouse callback to handle events
-        print("Canvas size : ", canvas_size)
-        
+        print("Canvas size : ", self.canvas_size)
+
         cv.namedWindow(self.window_name)
-        
+
         # Show feature image
 ##        cv.imshow(self.window_name, np.zeros(canvas_size, np.uint8))
 ##        cv.waitKey(1)
-        
+
         cv.setMouseCallback(self.window_name, self.on_mouse)
 
         while(not self.done):
             # This is our drawing loop, we just continuously draw new images
             # and show them in the named window
- 
+
             if (len(self.points) > 0):
                 # Draw all the current polygon segments
-                cv.polylines(feature_img, np.array([self.points]), False, (0,0,0), 1)
-                
+                cv.polylines(self.feature_img, np.array([self.points]), False, (0,0,0), 1)
+
                 # Show what the current line would look like
 ##                cv.line(feature_img, self.points[-1], self.current, WORKING_LINE_COLOR)
-                
+
           # Update the window
-            cv.imshow(self.window_name, feature_img)
-            
+            cv.imshow(self.window_name, self.feature_img)
+
             # And wait 50ms before next iteration (this will pump window messages meanwhile)
             if cv.waitKey(50) == 27: # Detect right clicked [ESC hit]
                 self.done = True
 
         # User finised entering the polygon points, so let's make the final drawing
-        canvas = np.zeros(canvas_size, np.uint8)
-        
+        canvas = np.zeros(self.canvas_size, np.uint8)
+
         # Fill polygon on canvas
         if (len(self.points) > 0):
             cv.fillPoly(canvas, np.array([self.points]), FINAL_LINE_COLOR)
-            
+
         # Show it
         cv.imshow(self.window_name, canvas)
-        
+
         # Waiting for the user to press any key
         cv.waitKey()
 
@@ -93,29 +94,29 @@ class FeatureCreator(object):
     """This class contain function to create feature image"""
 
     def __init__(self):
-            # Assign default feature size
-            self.raw_feature_image = np.zeros(canvas_size, np.uint8)
-            self.feature_image_size = (320,480)
-            # Init feature image
-            self.feature_image = np.zeros(canvas_size, np.uint8)
-            self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_img])
-            self.masked_feature_image = None
-            self.bitwisedAnd_feature_image = None
-            self.write_feature_image_location = ""
+        # Assign default feature size
+        self.raw_feature_image = np.zeros(canvas_size, np.uint8)
+        self.feature_image_size = (320,480)
+        # Init feature image
+        self.feature_image = np.zeros(canvas_size, np.uint8)
+        self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_img])
+        self.masked_feature_image = None
+        self.bitwisedAnd_feature_image = None
+        self.write_feature_image_location = ""
 
     def __init__(self, feature_image):
         """Expected feature image object from cv.imread(path directory)"""
-            # We need 2 important thing : 1.Feature image, 2.Feature image size
-            # Assign default feature size
-            self.raw_feature_image = feature_image
-            # Init feature image with gray scale
-            self.feature_image = cv.cvtColor(raw_feature_image, cv.COLOR_BGR2GRAY)
-            # Assign feature image size as tuple of height, width
-            self.feature_image_size = (feature_image.shape[:1], feature_image.shape[1:2])
-            self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_img])
-            self.masked_feature_image = None
-            self.bitwisedAnd_feature_image = None
-            self.write_feature_image_path = ""
+        # We need 2 important thing : 1.Feature image, 2.Feature image size
+        # Assign default feature size
+        self.raw_feature_image = feature_image
+        # Init feature image with gray scale
+        self.feature_image = cv.cvtColor(self.raw_feature_image, cv.COLOR_BGR2GRAY)
+        # Assign feature image size as tuple of height, width
+        self.feature_image_size = (self.feature_image.shape[0], feature_image.shape[1])
+        self.polygon_drawer = PolygonDrawer(["PolygonDrawer",self.feature_image_size, self.feature_image])
+        self.masked_feature_image = None
+        self.bitwisedAnd_feature_image = None
+        self.write_feature_image_path = ""
 
     def get_size_from_image(image):
         """Return Image size as tuple (height, width)"""
@@ -140,11 +141,11 @@ class FeatureCreator(object):
     def get_feature_image(self):
         """Return feature image"""
         return self.feature_image
-        
+
     def set_raw_feature_image(self, raw_feature_image):
         """Set feature image, Expect: raw image (color image)"""
         self.raw_feature_image = raw_feature_image
-    
+
     def set_feature_image(self, feature_image):
         """Set feature image, Expect: raw image (color image), But gray is acceptable."""
         self.feature_image = cv.cvtColor(feature_image, cv.COLOR_BGR2GRAY)
@@ -155,7 +156,7 @@ class FeatureCreator(object):
         # Set mask feature by drawing polygon on feature image [Use PolygonDrawer's instance]
         self.masked_feature_image = self.polygon_drawer.run()
 
-    def get_masked_feature(self, masked_feature_image):
+    def get_masked_feature(self):
         """Return masked feature image"""
         return self.masked_feature_image
 
@@ -163,8 +164,8 @@ class FeatureCreator(object):
         """Set bitwise AND to feature image"""
         # Create bitwise AND then overwrite to feature image
         # Expect to get piggy with black background
-        self.bitwisedAnd_feature_image = cv.bitwise_and(self.feature_img, self.bitwisedAnd_feature_image, self.bitwisedAnd_feature_image, mask=None)
-    
+        self.bitwisedAnd_feature_image = cv.bitwise_and(self.feature_image, self.masked_feature_image, self.masked_feature_image, mask=None)
+
     def get_bitwisedAnd_feature_image(self):
         """Get bitwise AND to feature image, Expect to get piggy with black Background"""
         return self.bitwisedAnd_feature_image
@@ -172,7 +173,7 @@ class FeatureCreator(object):
     def set_write_feature_image_path(self, path):
         """Set feature image write output path"""
         self.write_feature_image_path = path
-    
+
     def get_write_feature_image_path(self):
         """Return feature image write output path"""
         return self.write_feature_image_path
@@ -182,7 +183,8 @@ class FeatureCreator(object):
         # Create timestamp
         timestamp = time.time()
         # Write bitwisedAnd feature image with timestamp (integer)
-        cv.imwrite("./%s/feature_bitwise_%d.png" % self.write_feature_image_path % timestamp, self.bitwisedAnd_feature_image)
+        cv.imwrite("{0}/feature_bitwise_{1}.png".format(self.write_feature_image_path, timestamp), self.bitwisedAnd_feature_image)
+        print("'{0}/feature_bitwise_{1}.png'".format(self.write_feature_image_path, timestamp))
         cv.imshow("Bitwised feature image", self.bitwisedAnd_feature_image)
         # Press any key to continue...
         print("Press any key to continue...")
@@ -375,7 +377,7 @@ if __name__ == "__main__":
     #----------------------------------------SKIP IF ALREADY HAVE FEATURE IMAGE------------------------------------------------#
 
     # Step 1 : We need at least one image to initial feature
-    image = cv.imread('A:/PiggySample/feature_index_database/feature7.png')
+    image = cv.imread('A:/PiggySample/feature_index_database/feature1_cam2.png')
 
     # Step 2 : Create feature creator instance to create feature from image
     # AUTHOR NOTE : This script expect to get bitwised(AND) of a feature image with black background in it.
@@ -383,16 +385,16 @@ if __name__ == "__main__":
 
     # Step 3 : Draw polygon to mask feature image
     feature_creator.set_mask_feature()
-    
-    # Step 4 : Create bitwised(AND) of feature image
+
+    # Step 4 : Create bitwised(AND) of feature image by passing masked image
     feature_creator.set_bitwisedAnd_feature_image()
-    
+
     # Step 5 : Set path to write bitwised image
     feature_creator.set_write_feature_image_path("A:/PiggySample/feature_index_database/masked_feature")
 
     # Step 6 : Save feature image with black background
     feature_creator.write_bitwisedAnd_feature_image_with_timestamp()
-    
+
 #------------------------------------------------------------------------------------------------------------------------------#
     #feature_bitwise = cv.imread('A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_collapse_1.png')
     #testRun(feature_bitwise)
