@@ -191,180 +191,187 @@ class FeatureCreator(object):
         cv.waitKey(1)
         cv.destroyAllWindows()
 
-def testRun(feature_img):
+#--------------------------------------------------------------------------------------------------#
+def init_bgs(image):
+    """Initial Background Subtraction"""
+    blur = cv.GaussianBlur(image,(5,5),0)
+    image = cv.addWeighted(blur,1.5,image,-0.5,0)
 
-    #blur = cv.GaussianBlur(img1,(5,5),0)
-    #img1 = cv.addWeighted(blur,1.5,img1,-0.5,0)
+    # Apply BGS
+    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(3,3))
+    fgbg = cv.bgsegm.createBackgroundSubtractorGMG()
 
-    ##cv.imshow("Refined edge", smooth)
-    ##cv.waitKey(0)
-    ##cv.destroyAllWindows()
 
-    #Apply BGS
-    #kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(3,3))
-    #fgbg = cv.bgsegm.createBackgroundSubtractorGMG()
-
-    img1 = feature_img
-
+def start_sift_matching(feature_img, video_location, save_location, draw_feature=False):
+    """"""
     # Initiate SIFT detector
     sift = cv.xfeatures2d.SIFT_create()
 
     # find the keypoints and descriptors with SIFT
-    kp1, des1 = sift.detectAndCompute(img1,None)
-    kp3, des3 = sift.detectAndCompute(img3, None)
+    kp1, des1 = sift.detectAndCompute(feature_img,None)
+    
+    # If want to create more than one feature
+    #kp3, des3 = sift.detectAndCompute(img3, None)
+
+    # If have more than one feature image can add into list of image set
+    feature_image_list = [[feature_img,kp1,des1]]
 
 
-    imgSet = [[img1,kp1,des1]]#, [img3,kp3,des3]]
+    # Read video
+    print('{}'.format(video_location))
+    cap = cv.VideoCapture('{}'.format(video_location))
 
-    cap = cv.VideoCapture('A:/PiggySample/testVid1.mp4')
-
+    # First we need to define area of sift detector, In fact we normally detect all pixel in frame,\
+    # But sometimes we might used to detect on some interested region.
     if cap.isOpened():
         ret, frame = cap.read()
-        imgROI = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # trainImage
-        r = cv.selectROI(imgROI)
-
-
+        # Convert ROI image into gray scale
+        imgROI = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        roi = cv.selectROI(imgROI)
 
         # Crop image
-        imCrop = imgROI[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
+        image_crop = imgROI[int(roi[1]):int(roi[1]+roi[3]), int(roi[0]):int(roi[0]+roi[2])]
 
         # Display cropped image
-        #cv.imshow("ImageCrop", imCrop)
+        #cv.imshow("ImageCrop", image_crop)
 
-        print(r)
+        print("ROI size = {}".format(roi))
         cv.waitKey(0)
         cv.destroyAllWindows()
 
+    # Initial time to capture behavior of piggy which sleeping
     time = 0
-    countAppear = 0
-    countImgSnapshot = 0
+    # Initial number of detected sleeping piggy 
+    sleep_count_following_rule = 0
+    # Initial number of frame from video, It use to create snapshot frame number
+    count_image_snapshot = 0
+
+    # This step is mainly detect feature and matching sift
     while(cap.isOpened()):
         ret, frame = cap.read()
-        img2 = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # trainImage
+        image_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # trainImage
 
         #BGS
-        #blurImg = cv.blur(img2,(5,5))
+        #blurImg = cv.blur(image_frame,(5,5))
         #fgmask = fgbg.apply(blurImg)
         #fgmask = cv.morphologyEx(fgmask, cv.MORPH_OPEN, kernel)
 
-        #create cropped image from ROI
-        imCrop = img2[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
+        # Create cropped image from ROI
+        image_crop = image_frame[int(roi[1]):int(roi[1]+roi[3]), int(roi[0]):int(roi[0]+roi[2])]
 
+        # Start detect sift and compute
+        kp2, des2 = sift.detectAndCompute(image_crop,None)
 
-        kp2, des2 = sift.detectAndCompute(imCrop,None)
+        # In case want to import descriptor (des)
+        #des = np.loadtxt('descriptor_db.txt', dtype=np.float32)
 
-
-        #kp2, des2 = sift.detectAndCompute(img2,None)
-
-
-
-
-        #c = np.loadtxt('descriptor_db.txt', dtype=np.float32)
-
-
+        # This step define fast library approximate nearest neighbor (FLANN) parameter to match sift feature
         # FLANN parameters
         FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
         search_params = dict(checks=50)   # or pass empty dictionary
 
+        # Define matcher
         flann = cv.FlannBasedMatcher(index_params,search_params)
 
-        for imgi, kpi, desi in imgSet:
+        # This loop start from reading feature image from feature_image_list to match each feature and sift
+        # Now we have only one feature so loop is running in one feature image
+        for image_i, kpi, desi in feature_image_list:
 
+            # Start matching feature image with image frame from video
             matches = flann.knnMatch(desi,des2, k=2)
 
-            #print(matches)
             # Need to draw only good matches, so create a mask
             matchesMask = [[0,0] for i in range(len(matches))]
-    ##        matches = sorted(matches, key=lambda m:m[0].distance < 0.7*m[1].distance)
 
-            # sort match แต่ไม่รู้โอเคไหม ช่วยเร็วขึ้น หรือ แม่นขึ้นหรือไม่?
-            # อาจต้องลอง sort key ที่ดีกว่า
-            #matches = sorted(matches, key=lambda m:m[1].distance, reverse=True)
-            #check วิธี sort ด้วยเผื่อเร็วขึ้น
+            # Sort match result maybe faster to detect good feature
+            # But not sure it probably result in millisec so adjust key is possible choice
             matches = sorted(matches, key=lambda m:m[0].distance, reverse=True)
 
+            # Finding good feature
+            # Ratio test as per Lowe's paper
+            # Try adjust threshold in this case video has low quality, It's score has less than normal adjust ratio to more than 0.7 is better detection
 
-            # ratio test as per Lowe's paper
-            #good same as matchesMask
-            #Try adjust threshold
+            # Define good feature list
+            # good_feature_list contain number of match
+            good_feature_list = []
 
-            good = []
-            for m_n in matches:
-                #define m_n to check match size [match size should be 2]
-                if len(m_n) != 2:
-                    continue
-                m, n = m_n
+            # This is newer code use matchesMask to match good feature may be better than good_feature_list
+            for i, (m,n) in enumerate(matches):
                 if m.distance < 0.80*n.distance:
-                    #matchesMask[i]=[1,0]
-                    good.append(m)
+                    matchesMask[i]=[1,0]
+                    good_feature_list.append(m)
 
-            #Try to use cropped image
-            img_show = np.array(img2)
-
-
-            #img_show = np.array(img2)
-
-            #Need adjust time
-    ##        if len(good) > MIN_MATCH_COUNT:
-    ##
-    ##            #sleep(0.1)
-    ##            time += 0.1
-    ##            #print(time, "    ---D")
-    ##            if time >= 200:
-    ##                #print(time)
-    ##                print('Alert !!!! Piggy is sleeping outside Heatpad!!!!')
-    ##                time = 0
-    ##                countAppear += 1
-    ##
-    ##            src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1,1,2)
-    ##            dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1,1,2)
-    ##
-    ##            M, _ = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
-    ##
-    ##            h, w, _ = raw_feature_image.shape
-    ##            pts = np.float32([[0 , 0],
-    ##                              [0, h - 1],
-    ##                              [w - 1, h - 1],
-    ##                              [w - 1, 0]]).reshape(-1, 1, 2)
-    ##            dst = cv.perspectiveTransform(pts, M)
-    ##
-    ##
-    ####            img2 = cv.polylines(img_show, [np.int32(dst)],
-    ####                                         True, 255, 3, cv.LINE_AA)
-    ##            imCrop = cv.polylines(imCrop, [np.int32(dst)],
-    ##                             True, 255, 3, cv.LINE_AA)
-    ##        ############################################################################
+            # Copy image frame to use
+            correspondences_image = np.array(image_frame)
+            image_draw_feature_polylines = correspondences_image
 
 
-                # Draw the keypoint matches
+            # In case want to draw square at feature detection but now it's bug.
+            # Need adjust time of sleeping behavior
 
-            img_show = cv.drawMatches(imgi, kpi, imCrop, kp2,
-                                           good, img2, flags=2)
+            # Check good_feature_list may be obsolete last changed | Use matchesMask instead
+            if draw_feature == True:
+                if len(good_feature_list) > MIN_MATCH_COUNT:
+                    # Increase time detec feature that sleeping
+                    time += 0.1
+                    if time >= 200:
+                        #print(time)
+                        print('Alert !!!! Piggy is sleeping outside Heatpad!!!!')
+                        time = 0
+                        sleep_count_following_rule += 1
 
-    ##        show original img
-    ##        img_show = cv.drawMatches(imgi, kpi, img2, kp2,
-    ##                                       good, img2, flags=2)
-    ##
+                    src_pts = np.float32([kp1[m.queryIdx].pt for m in good_feature_list]).reshape(-1,1,2)
+                    dst_pts = np.float32([kp2[m.trainIdx].pt for m in good_feature_list]).reshape(-1,1,2)
 
-            #cv.imshow("Correspondences", img2)
+                    M, _ = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
 
-    ##        cv.imshow("OriginalImage", img2)
+                    h, w, _ = raw_feature_image.shape
+                    pts = np.float32([[0 , 0],
+                                      [0, h - 1],
+                                      [w - 1, h - 1],
+                                      [w - 1, 0]]).reshape(-1, 1, 2)
+                    dst = cv.perspectiveTransform(pts, M)
 
-            #Show เส้น พร้อม Original Image
-            cv.imshow("Correspondences2", img_show)
+                    # This block draw poly lines over the output image so carefully check
+                    image_draw_feature_polylines = cv.polylines(image_crop, [np.int32(dst)],
+                                     True, 255, 3, cv.LINE_AA)
 
-    ##        cv.imshow(str(imgi), imgi)
-    ##        cv.imshow("BGS", fgmask)
+            # New code define draw parameter and use matchesMask instead of good_feature_image
+            draw_params = dict(matchColor = (0,255,0),
+                   singlePointColor = (255,0,0),
+                   matchesMask = matchesMask,
+                   flags = 0)
+            
+            # To use newer version : cv.drawMatchesKnn(img1,kp1,img2,kp2,matches,outputImage,**draw_params)
+            # Check good_feature_list may be obsoleted last changed | Use matchesMask instead
+##            correspondences_image = cv.drawMatches(image_i, kpi, image_crop, kp2,
+##                                           good_feature_image, image_frame, flags=2)
 
-            #cv.imwrite("A:/PiggySample/filter_2_feature_8.0/frame%d.jpg" % countImgSnapshot, img_show)
-            countImgSnapshot += 1
+            # Better match than good feature old code
+            # Draw the keypoint matches with original image
+            correspondences_image = cv.drawMatchesKnn(image_i, kpi, image_crop, kp2, matches, image_frame, **draw_params)
+
+            # Show square feature detected
+            #cv.imshow("Detect sleeping piggy", image_draw_feature_polylines)
+
+            # Show original frame
+            #cv.imshow("Original frame", image_frame)
+
+            #Show matched lines with original Image
+            cv.imshow("Correspondences", correspondences_image)
+
+            # Show Background Subtraction of video
+            # cv.imshow(str(image_i), image_i)
+            # cv.imshow("BGS", fgmask)
+
+            cv.imwrite("{0}frame{1}.jpg".format(save_location, count_image_snapshot), correspondences_image)
+            count_image_snapshot += 1
 
 
         if cv.waitKey(1) & 0xFF == ord('q'):
             break
-        #showMatches(img1,kp1,img2,kp2,matches, matchesMask, imgSet)
-
+        
     cap.release()
     cv.destroyAllWindows()
 
@@ -376,33 +383,38 @@ if __name__ == "__main__":
 
     #----------------------------------------SKIP IF ALREADY HAVE FEATURE IMAGE------------------------------------------------#
 
-    # Step 1 : We need at least one image to initial feature
-    image = cv.imread('A:/PiggySample/feature_index_database/feature1_cam2.png')
+    create_new_feature = False
+    
+    if create_new_feature == True:
+        """Create new feature"""
+        # Step 1 : We need at least one image to initial feature
+        image = cv.imread("A:/PiggySample/feature_index_database/feature1_cam2.png")
 
-    # Step 2 : Create feature creator instance to create feature from image
-    # AUTHOR NOTE : This script expect to get bitwised(AND) of a feature image with black background in it.
-    feature_creator = FeatureCreator(image)
+        # Step 2 : Create feature creator instance to create feature from image
+        # AUTHOR NOTE : This script expect to get bitwised(AND) of a feature image with black background in it.
+        feature_creator = FeatureCreator(image)
 
-    # Step 3 : Draw polygon to mask feature image
-    feature_creator.set_mask_feature()
+        # Step 3 : Draw polygon to mask feature image
+        feature_creator.set_mask_feature()
 
-    # Step 4 : Create bitwised(AND) of feature image by passing masked image
-    feature_creator.set_bitwisedAnd_feature_image()
+        # Step 4 : Create bitwised(AND) of feature image by passing masked image
+        feature_creator.set_bitwisedAnd_feature_image()
 
-    # Step 5 : Set path to write bitwised image
-    feature_creator.set_write_feature_image_path("A:/PiggySample/feature_index_database/masked_feature")
+        # Step 5 : Set path to write bitwised image
+        feature_creator.set_write_feature_image_path("A:/PiggySample/feature_index_database/masked_feature")
 
-    # Step 6 : Save feature image with black background
-    feature_creator.write_bitwisedAnd_feature_image_with_timestamp()
+        # Step 6 : Save feature image with black background
+        feature_creator.write_bitwisedAnd_feature_image_with_timestamp()
 
 #------------------------------------------------------------------------------------------------------------------------------#
-    #feature_bitwise = cv.imread('A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_collapse_1.png')
-    #testRun(feature_bitwise)
-
-
-
-    #วาด mask feature ทับลงไป
-
-
-##    print("Polygon = %s" % pd.points)
-
+    # Step 1 : Load feature image
+    video_location = "A:/PiggySample/vid1.mp4"
+    save_location = "A:/PiggySample/filter1_compare_GoodAndMatchesMask/"
+    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_1.png")
+    # Step 2 : Start feature matching by passing feature image into start_sift_matching()
+##    try:
+    start_sift_matching(feature_bitwise, video_location, save_location, draw_feature=False)
+##    except:
+##        print("Out of frame")
+##        print("Your snapshot has been saved at {}".format(save_location))
+##        #exit(1)
