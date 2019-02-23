@@ -203,7 +203,7 @@ def init_bgs(image):
 
 
 def start_sift_matching(feature_img, video_location, save_location, draw_feature=False):
-    """"""
+    """SIFT matching with video"""
     # Initiate SIFT detector
     sift = cv.xfeatures2d.SIFT_create()
 
@@ -366,10 +366,10 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
             # cv.imshow(str(image_i), image_i)
             # cv.imshow("BGS", fgmask)
 
-            cv.imwrite("{0}frame{1}.jpg".format(save_location, count_image_snapshot), correspondences_image)
+            cv.imwrite("{0}{1}.jpg".format(save_location, count_image_snapshot), correspondences_image)
             count_image_snapshot += 1
 
-
+        # Press q to exit
         if cv.waitKey(1) & 0xFF == ord('q'):
             break
         
