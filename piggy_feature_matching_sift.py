@@ -205,7 +205,8 @@ def init_bgs(image):
 def start_sift_matching(feature_img, video_location, save_location, draw_feature=False):
     """SIFT matching with video"""
     # Initiate SIFT detector
-    sift = cv.xfeatures2d.SIFT_create()
+    # SIFT create parameter (nfeatures=0, nOctaveLayers=3, contrastThreshold=0.04,edgeThreshold=10,sigma=1.6)
+    sift = cv.xfeatures2d.SIFT_create(contrastThreshold=0.005, edgeThreshold=30, sigma=2.0)
 
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(feature_img,None)
@@ -215,7 +216,6 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
     # If have more than one feature image can add into list of image set
     feature_image_list = [[feature_img,kp1,des1]]
-
 
     # Read video
     print('{}'.format(video_location))
@@ -284,10 +284,11 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
             # Need to draw only good matches, so create a mask
             matchesMask = [[0,0] for i in range(len(matches))]
 
+            # No need to sort...
             # Sort match result maybe faster to detect good feature
             # But not sure it probably result in millisec so adjust key is possible choice
             # The lower the better it is.
-            matches = sorted(matches, key=lambda m:m[0].distance, reverse=True)
+            #matches = sorted(matches, key=lambda m:m[0].distance, reverse=True)
 
             # Finding good feature
             # Ratio test as per Lowe's paper
@@ -299,7 +300,7 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
             # This is newer code use matchesMask to match good feature may be better than good_feature_list
             for i, (m,n) in enumerate(matches):
-                if m.distance < 0.80*n.distance:
+                if m.distance < 0.70*n.distance:
                     matchesMask[i]=[1,0]
                     good_feature_list.append(m)
 
@@ -410,7 +411,7 @@ if __name__ == "__main__":
 #------------------------------------------------------------------------------------------------------------------------------#
     # Step 1 : Load feature image
     video_location = "A:/PiggySample/vid1.mp4"
-    save_location = "A:/PiggySample/filter3/"
+    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.70/feature1/"
     feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_1.png")
     # Step 2 : Start feature matching by passing feature image into start_sift_matching()
     try:
