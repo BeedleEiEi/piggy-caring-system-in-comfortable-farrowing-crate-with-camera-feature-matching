@@ -286,6 +286,7 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
             # Sort match result maybe faster to detect good feature
             # But not sure it probably result in millisec so adjust key is possible choice
+            # The lower the better it is.
             matches = sorted(matches, key=lambda m:m[0].distance, reverse=True)
 
             # Finding good feature
@@ -409,7 +410,7 @@ if __name__ == "__main__":
 #------------------------------------------------------------------------------------------------------------------------------#
     # Step 1 : Load feature image
     video_location = "A:/PiggySample/vid1.mp4"
-    save_location = "A:/PiggySample/filter1_compare_GoodAndMatchesMask/"
+    save_location = "A:/PiggySample/filter3/"
     feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_1.png")
     # Step 2 : Start feature matching by passing feature image into start_sift_matching()
 ##    try:
