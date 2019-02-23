@@ -413,9 +413,9 @@ if __name__ == "__main__":
     save_location = "A:/PiggySample/filter3/"
     feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_1.png")
     # Step 2 : Start feature matching by passing feature image into start_sift_matching()
-##    try:
-    start_sift_matching(feature_bitwise, video_location, save_location, draw_feature=False)
-##    except:
-##        print("Out of frame")
-##        print("Your snapshot has been saved at {}".format(save_location))
-##        #exit(1)
+    try:
+        start_sift_matching(feature_bitwise, video_location, save_location, draw_feature=False)
+    except:
+        print("Out of frame")
+        print("Your snapshot has been saved at {}".format(save_location))
+        exit(1)
