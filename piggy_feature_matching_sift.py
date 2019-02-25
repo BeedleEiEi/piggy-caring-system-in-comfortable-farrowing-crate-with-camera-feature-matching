@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# AUTHOR BeedleEiEi #
 import numpy as np
 import cv2 as cv
 import _pickle as pickle
@@ -7,8 +9,6 @@ import time
 MIN_MATCH_COUNT = 10
 FINAL_LINE_COLOR = (255, 255, 255)
 WORKING_LINE_COLOR = (127, 127, 127)
-
-
 # ============================================================================
 
 class PolygonDrawer(object):
@@ -201,6 +201,17 @@ def init_bgs(image):
     kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE,(3,3))
     fgbg = cv.bgsegm.createBackgroundSubtractorGMG()
 
+def resize_feature_image_to_local_feature_size(high_resolution_feature_image):
+    """This function return resized feature image\
+       Expect hi resolution feature image,\
+       To be resized equal to size of local video feature image for higher accuracy\
+       when used hi resolution feature compared with low quality video
+    """
+    # We need one feature image from video to compare size with high resolution image
+    feature_image_of_video = cv.imread("A:/PiggySample/feature_index_database/feature1.png", 1)
+    feature_height, feature_width = feature_image_of_video.shape[:2]
+    image_resized = cv.resize(high_resolution_feature_image, (feature_height, feature_width), interpolation = cv.INTER_AREA)
+    return image_resized
 
 def start_sift_matching(feature_img, video_location, save_location, draw_feature=False):
     """SIFT matching with video"""
@@ -216,11 +227,11 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
     # If have more than one feature image can add into list of image set
     feature_image_list = [[feature_img,kp1,des1]]
-
+    
     # Read video
     print('{}'.format(video_location))
     cap = cv.VideoCapture('{}'.format(video_location))
-
+    
     # First we need to define area of sift detector, In fact we normally detect all pixel in frame,\
     # But sometimes we might used to detect on some interested region.
     if cap.isOpened():
@@ -300,7 +311,7 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
             # This is newer code use matchesMask to match good feature may be better than good_feature_list
             for i, (m,n) in enumerate(matches):
-                if m.distance < 0.70*n.distance:
+                if m.distance < 0.80*n.distance:
                     matchesMask[i]=[1,0]
                     good_feature_list.append(m)
 
@@ -386,11 +397,16 @@ if __name__ == "__main__":
     #----------------------------------------SKIP IF ALREADY HAVE FEATURE IMAGE------------------------------------------------#
 
     create_new_feature = False
+    use_high_resolution_feature_image = False
     
     if create_new_feature == True:
         """Create new feature"""
-        # Step 1 : We need at least one image to initial feature
-        image = cv.imread("A:/PiggySample/feature_index_database/feature1_cam2.png")
+        # Step 1 : We need at least one image to initial feature, So define path of your feature image
+        image = cv.imread("A:/PiggySample/feature_index_database/hires1.png")
+
+        # If feature image is high resolution image
+        if use_high_resolution_feature_image == True:
+            image = resize_feature_image_to_local_feature_size(image)
 
         # Step 2 : Create feature creator instance to create feature from image
         # AUTHOR NOTE : This script expect to get bitwised(AND) of a feature image with black background in it.
@@ -410,13 +426,15 @@ if __name__ == "__main__":
 
 #------------------------------------------------------------------------------------------------------------------------------#
     # Step 1 : Load feature image
-    video_location = "A:/PiggySample/vid1.mp4"
-    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.70/feature1/"
-    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_1.png")
+    video_location = "A:/PiggySample/21pm.mp4"
+    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.80/front-camera/n-allfeature/"
+    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_allfeature.png")
     # Step 2 : Start feature matching by passing feature image into start_sift_matching()
     try:
         start_sift_matching(feature_bitwise, video_location, save_location, draw_feature=False)
-    except:
+    except Exception as e:
+        print(e)
+        print(video_location)
         print("Out of frame")
         print("Your snapshot has been saved at {}".format(save_location))
         exit(1)
