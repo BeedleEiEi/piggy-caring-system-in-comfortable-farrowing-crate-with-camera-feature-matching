@@ -221,17 +221,18 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(feature_img,None)
-    
+    np.savetxt('feature_desc.txt', des1)
+
     # If want to create more than one feature
     #kp3, des3 = sift.detectAndCompute(img3, None)
 
     # If have more than one feature image can add into list of image set
     feature_image_list = [[feature_img,kp1,des1]]
-    
+
     # Read video
     print('{}'.format(video_location))
     cap = cv.VideoCapture('{}'.format(video_location))
-    
+
     # First we need to define area of sift detector, In fact we normally detect all pixel in frame,\
     # But sometimes we might used to detect on some interested region.
     if cap.isOpened():
@@ -252,7 +253,7 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
     # Initial time to capture behavior of piggy which sleeping
     time = 0
-    # Initial number of detected sleeping piggy 
+    # Initial number of detected sleeping piggy
     sleep_count_following_rule = 0
     # Initial number of frame from video, It use to create snapshot frame number
     count_image_snapshot = 0
@@ -355,7 +356,7 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
                    singlePointColor = (255,0,0),
                    matchesMask = matchesMask,
                    flags = 0)
-            
+
             # To use newer version : cv.drawMatchesKnn(img1,kp1,img2,kp2,matches,outputImage,**draw_params)
             # Check good_feature_list may be obsoleted last changed | Use matchesMask instead
 ##            correspondences_image = cv.drawMatches(image_i, kpi, image_crop, kp2,
@@ -378,13 +379,14 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
             # cv.imshow(str(image_i), image_i)
             # cv.imshow("BGS", fgmask)
 
-            cv.imwrite("{0}{1}.jpg".format(save_location, count_image_snapshot), correspondences_image)
-            count_image_snapshot += 1
+            if save_location != False:
+                cv.imwrite("{0}{1}.jpg".format(save_location, count_image_snapshot), correspondences_image)
+                count_image_snapshot += 1
 
         # Press q to exit
         if cv.waitKey(1) & 0xFF == ord('q'):
             break
-        
+
     cap.release()
     cv.destroyAllWindows()
 
@@ -398,11 +400,11 @@ if __name__ == "__main__":
 
     create_new_feature = False
     use_high_resolution_feature_image = False
-    
+
     if create_new_feature == True:
         """Create new feature"""
         # Step 1 : We need at least one image to initial feature, So define path of your feature image
-        image = cv.imread("A:/PiggySample/feature_index_database/hires1.png")
+        image = cv.imread("A:/PiggySample/feature_index_database/n-allfeature2.png")
 
         # If feature image is high resolution image
         if use_high_resolution_feature_image == True:
@@ -426,12 +428,12 @@ if __name__ == "__main__":
 
 #------------------------------------------------------------------------------------------------------------------------------#
     # Step 1 : Load feature image
-    video_location = "A:/PiggySample/21pm.mp4"
-    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.80/front-camera/n-allfeature/"
-    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_allfeature.png")
+    video_location = "A:/PiggySample/21pm_24fps.mp4"
+    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.80/front-camera/n-allfeature/sub-areaa/"
+    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_1.png")
     # Step 2 : Start feature matching by passing feature image into start_sift_matching()
     try:
-        start_sift_matching(feature_bitwise, video_location, save_location, draw_feature=False)
+        start_sift_matching(feature_bitwise, video_location, save_location=False, draw_feature=False)
     except Exception as e:
         print(e)
         print(video_location)
