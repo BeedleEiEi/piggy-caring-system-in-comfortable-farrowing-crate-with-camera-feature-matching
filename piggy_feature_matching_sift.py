@@ -222,7 +222,7 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
 
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(feature_img,None)
-    np.savetxt('feature_desc.txt', des1)
+    #np.savetxt('feature_desc.txt', des1)
 
     # If want to create more than one feature
     #kp3, des3 = sift.detectAndCompute(img3, None)
@@ -392,7 +392,7 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
     cv.destroyAllWindows()
 
 #------------------------------------------------------------------------------------------------------------------------------#
-def start(feature_bitwise, video_location, save_location=False, draw_feature=False):
+def start(feature_bitwise, video_location, save_location, draw_feature=False):
     try:
         start_sift_matching(feature_bitwise, video_location, save_location, draw_feature)
     except Exception as e:
@@ -471,18 +471,18 @@ if __name__ == "__main__":
     use_high_resolution_feature_image = False
 
     # Step 1 : Load feature image
-    video_location = "A:/PiggySample/21pm_24fps.mp4"
+    video_location = "A:/PiggySample/feature_index_database/video_feature/feature1.mp4"
 
     if create_new_feature == True:
         # Save created feature image
-        image_to_create_feature_path = "A:/PiggySample/21pm_24fps.mp4"
-        save_feature_image_path = "A:/PiggySample/feature_index_database/masked_feature"
+        image_to_create_feature_path = "A:/PiggySample/feature_index_database/video_feature/feature5.mp4"
+        save_feature_image_path = "A:/PiggySample/feature_index_database/masked_feature2/"
         create_new_feature_by_image(image_to_create_feature_path, save_feature_image_path, use_high_resolution_feature_image)
 
     # Save snapshot from feature matching
-    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.80/front-camera/n-feature2/"
-    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_n-feature2.png")
+    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.80/front-camera/new-feature1/"
+    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature2/feature_bitwise_1.png")
     # Step 2 : Start feature matching by passing feature image into start_sift_matching()
-    start(feature_bitwise, video_location, save_location=False, draw_feature=False)
+    start(feature_bitwise, video_location, save_location, draw_feature=False)
 
 #------------------------------------------------------------------------------------------------------------------------------#
