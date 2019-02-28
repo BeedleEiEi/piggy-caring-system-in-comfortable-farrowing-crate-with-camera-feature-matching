@@ -9,6 +9,7 @@ import time
 MIN_MATCH_COUNT = 10
 FINAL_LINE_COLOR = (255, 255, 255)
 WORKING_LINE_COLOR = (127, 127, 127)
+IMAGE_FORMAT_LIST = ["png", "jpg", "bmp"]
 # ============================================================================
 
 class PolygonDrawer(object):
@@ -391,20 +392,50 @@ def start_sift_matching(feature_img, video_location, save_location, draw_feature
     cv.destroyAllWindows()
 
 #------------------------------------------------------------------------------------------------------------------------------#
-if __name__ == "__main__":
-                                                        ## MAIN STATE ##
+def start(feature_bitwise, video_location, save_location=False, draw_feature=False):
+    try:
+        start_sift_matching(feature_bitwise, video_location, save_location, draw_feature)
+    except Exception as e:
+        print(e)
+        print(video_location)
+        print("Out of frame")
+        print("Your snapshot has been saved at {}".format(save_location))
+        exit(1)
 
-    #-------------------------IN CASE WE WANT TO CREATE NEW FEATURE IMAGE WITH BLACK BACKGROUND IN IT--------------------------#
+def check_image_format(image_path):
+    """"""
+    try:
+        is_image_format = image_path[-3:] in IMAGE_FORMAT_LIST
+        return is_image_format
+    except Exception as e:
+        print(e, '    File format is incorrect')
 
-    #----------------------------------------SKIP IF ALREADY HAVE FEATURE IMAGE------------------------------------------------#
+def create_new_feature_by_image(image_path, save_feature_image_path, use_high_resolution_feature_image=False):
+    """Create new feature"""
+    # Step 1 : We need at least one image to initial feature, So define path of your feature image
+    # If use image from video use this block
+    try:
+        image_path = '{}'.format(image_path)
+        if check_image_format(image_path) == True:
+            image = cv.imread(image_path)
+        else:
+            # It might be video format
+            feature_image_cap = cv.VideoCapture(image_path)
+            if feature_image_cap.isOpened():
+                ret, frame = feature_image_cap.read()
+                imgROI = frame
+                roi = cv.selectROI(imgROI)
 
-    create_new_feature = False
-    use_high_resolution_feature_image = False
+                # Crop image
+                image = imgROI[int(roi[1]):int(roi[1]+roi[3]), int(roi[0]):int(roi[0]+roi[2])]
 
-    if create_new_feature == True:
-        """Create new feature"""
-        # Step 1 : We need at least one image to initial feature, So define path of your feature image
-        image = cv.imread("A:/PiggySample/feature_index_database/n-allfeature2.png")
+                # Display cropped image
+                cv.imshow("ROI OF Feature Image From Video", image)
+
+                print("ROI Feature Image From Video Size = {}".format(roi))
+                print("Press any key to continue bitwise...")
+                cv.waitKey(0)
+                cv.destroyAllWindows()
 
         # If feature image is high resolution image
         if use_high_resolution_feature_image == True:
@@ -421,22 +452,37 @@ if __name__ == "__main__":
         feature_creator.set_bitwisedAnd_feature_image()
 
         # Step 5 : Set path to write bitwised image
-        feature_creator.set_write_feature_image_path("A:/PiggySample/feature_index_database/masked_feature")
+        feature_creator.set_write_feature_image_path(save_feature_image_path)
 
         # Step 6 : Save feature image with black background
         feature_creator.write_bitwisedAnd_feature_image_with_timestamp()
 
-#------------------------------------------------------------------------------------------------------------------------------#
-    # Step 1 : Load feature image
-    video_location = "A:/PiggySample/21pm_24fps.mp4"
-    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.80/front-camera/n-allfeature/sub-areaa/"
-    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_1.png")
-    # Step 2 : Start feature matching by passing feature image into start_sift_matching()
-    try:
-        start_sift_matching(feature_bitwise, video_location, save_location=False, draw_feature=False)
     except Exception as e:
         print(e)
-        print(video_location)
-        print("Out of frame")
-        print("Your snapshot has been saved at {}".format(save_location))
-        exit(1)
+
+if __name__ == "__main__":
+                                                        ## MAIN STATE ##
+
+    #-------------------------IN CASE WE WANT TO CREATE NEW FEATURE IMAGE WITH BLACK BACKGROUND IN IT--------------------------#
+
+    #----------------------------------------SKIP IF ALREADY HAVE FEATURE IMAGE------------------------------------------------#
+
+    create_new_feature = False
+    use_high_resolution_feature_image = False
+
+    # Step 1 : Load feature image
+    video_location = "A:/PiggySample/21pm_24fps.mp4"
+
+    if create_new_feature == True:
+        # Save created feature image
+        image_to_create_feature_path = "A:/PiggySample/21pm_24fps.mp4"
+        save_feature_image_path = "A:/PiggySample/feature_index_database/masked_feature"
+        create_new_feature_by_image(image_to_create_feature_path, save_feature_image_path, use_high_resolution_feature_image)
+
+    # Save snapshot from feature matching
+    save_location = "A:/PiggySample/update_sift_create/result/ratio 0.80/front-camera/n-feature2/"
+    feature_bitwise = cv.imread("A:/PiggySample/feature_index_database/masked_feature/feature_bitwise_n-feature2.png")
+    # Step 2 : Start feature matching by passing feature image into start_sift_matching()
+    start(feature_bitwise, video_location, save_location=False, draw_feature=False)
+
+#------------------------------------------------------------------------------------------------------------------------------#
